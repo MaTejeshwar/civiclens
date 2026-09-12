@@ -1,1 +1,8 @@
-# Add backend dependencies here.
+fastapi
+uvicorn
+python-dotenv
+google-genai
+pymupdf
+numpy
+scikit-learn
+python-multipart
