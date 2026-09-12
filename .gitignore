@@ -8,3 +8,4 @@ venv/
 # Generated and local data
 outputs/*
 data/processed/*
+data/investigations.json

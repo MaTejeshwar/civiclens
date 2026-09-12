@@ -45,6 +45,15 @@ input {
   font: inherit;
 }
 
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(69, 97, 189, 0.18);
+  color: #172033;
+}
+
 
 /* =========================================================
    APP SHELL
@@ -77,6 +86,7 @@ input {
   z-index: 20;
 
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .brand {
@@ -99,6 +109,17 @@ input {
 
   box-shadow:
     0 7px 20px rgba(36, 59, 128, 0.2);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.brand:hover .brand-mark {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 9px 23px rgba(36, 59, 128, 0.24);
 }
 
 .brand-name {
@@ -139,6 +160,21 @@ input {
 
   box-shadow:
     0 0 0 4px rgba(37, 165, 106, 0.1);
+
+  animation: statusPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(37, 165, 106, 0.1);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 7px rgba(37, 165, 106, 0.04);
+  }
 }
 
 
@@ -187,6 +223,8 @@ input {
   letter-spacing: -2.8px;
 
   margin: 16px 0;
+
+  max-width: 1000px;
 }
 
 .hero h1 span {
@@ -224,6 +262,17 @@ input {
 
   box-shadow:
     0 18px 55px rgba(28, 43, 75, 0.07);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.analysis-card:focus-within {
+  border-color: #d2daeb;
+
+  box-shadow:
+    0 20px 60px rgba(28, 43, 75, 0.09);
 }
 
 .card-heading {
@@ -308,7 +357,7 @@ textarea {
     background 0.2s ease;
 }
 
-textarea:hover {
+textarea:hover:not(:disabled) {
   border-color: #cfd7e4;
 }
 
@@ -319,6 +368,12 @@ textarea:focus {
 
   box-shadow:
     0 0 0 4px rgba(99, 123, 208, 0.1);
+}
+
+textarea:disabled {
+  opacity: 0.72;
+
+  cursor: wait;
 }
 
 
@@ -380,6 +435,10 @@ textarea:focus {
     0 13px 28px rgba(36, 59, 128, 0.25);
 }
 
+.analyze-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .analyze-button:focus-visible {
   outline: 3px solid rgba(69, 97, 189, 0.22);
   outline-offset: 2px;
@@ -412,6 +471,8 @@ textarea:focus {
   background: #fff5f5;
 
   border: 1px solid #f1d7d7;
+
+  animation: fadeIn 0.2s ease;
 }
 
 
@@ -439,6 +500,15 @@ textarea:focus {
     0 20px 55px rgba(23, 34, 61, 0.16);
 }
 
+.agent-progress.completed {
+  background:
+    linear-gradient(
+      135deg,
+      #17223d 0%,
+      #192746 100%
+    );
+}
+
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -450,6 +520,18 @@ textarea:focus {
   color: #9eb2ff;
 
   margin-bottom: 8px;
+}
+
+.completed-badge {
+  align-self: flex-start;
+
+  background:
+    rgba(158, 178, 255, 0.1);
+
+  color: #c1cced;
+
+  border: 1px solid
+    rgba(158, 178, 255, 0.15);
 }
 
 .trace-grid {
@@ -517,6 +599,13 @@ textarea:focus {
     rgba(158, 178, 255, 0.13);
 
   color: #a9baff;
+}
+
+.trace-item.done .trace-icon {
+  background:
+    rgba(77, 194, 130, 0.1);
+
+  color: #82d5a7;
 }
 
 .trace-content {
@@ -717,6 +806,17 @@ textarea:focus {
 
   box-shadow:
     0 3px 12px rgba(24, 39, 75, 0.045);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.graph-stage:hover {
+  border-color: #c9d5e5;
+
+  box-shadow:
+    0 6px 18px rgba(24, 39, 75, 0.065);
 }
 
 
@@ -1067,9 +1167,13 @@ textarea:focus {
 
   color: #347654;
 
+  border: 1px solid #d8eee2;
+
   font-size: 12px;
 
   font-weight: 700;
+
+  white-space: nowrap;
 }
 
 
@@ -1159,6 +1263,8 @@ textarea:focus {
   font-size: 13px;
 
   line-height: 1.65;
+
+  overflow-wrap: anywhere;
 }
 
 .report-card-content p,
@@ -1167,7 +1273,11 @@ textarea:focus {
 }
 
 .numbered-item {
+  position: relative;
+
   margin-bottom: 8px;
+
+  padding-left: 2px;
 }
 
 
@@ -1190,6 +1300,19 @@ textarea:focus {
 
   box-shadow:
     0 2px 10px rgba(24, 39, 75, 0.025);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.evidence-panel:hover,
+.recommendation-panel:hover,
+.verification-panel:hover {
+  border-color: #d9e1ed;
+
+  box-shadow:
+    0 6px 18px rgba(24, 39, 75, 0.04);
 }
 
 .panel-heading {
@@ -1213,7 +1336,7 @@ textarea:focus {
 
   gap: 10px;
 
-  padding: 12px 0;
+  padding: 13px 0;
 
   color: #596579;
 
@@ -1222,10 +1345,24 @@ textarea:focus {
   line-height: 1.55;
 
   border-bottom: 1px solid #f0f2f6;
+
+  transition:
+    background 0.18s ease,
+    padding-left 0.18s ease;
 }
 
 .evidence-line:last-child {
   border-bottom: 0;
+}
+
+.evidence-line:hover {
+  background: #fbfcfe;
+
+  padding-left: 7px;
+
+  padding-right: 7px;
+
+  border-radius: 8px;
 }
 
 .evidence-line > svg {
@@ -1244,6 +1381,8 @@ textarea:focus {
   gap: 4px;
 
   min-width: 0;
+
+  flex: 1;
 }
 
 .evidence-line-content strong {
@@ -1272,6 +1411,8 @@ textarea:focus {
   font-size: 12px;
 
   line-height: 1.55;
+
+  overflow-wrap: anywhere;
 }
 
 .bottom-grid {
@@ -1322,6 +1463,18 @@ textarea:focus {
 
   box-shadow:
     0 8px 30px rgba(15, 23, 42, 0.05);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.workspace-tool:hover {
+  border-color: #d7dfeb;
+
+  box-shadow:
+    0 11px 34px rgba(15, 23, 42, 0.065);
 }
 
 .workspace-tool-heading {
@@ -1413,7 +1566,8 @@ textarea:focus {
 
   transition:
     border-color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .file-picker:hover {
@@ -1464,7 +1618,8 @@ textarea:focus {
   transition:
     background 0.18s ease,
     transform 0.18s ease,
-    opacity 0.18s ease;
+    opacity 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .secondary-action {
@@ -1477,12 +1632,22 @@ textarea:focus {
   background: #111827;
 
   color: white;
+
+  box-shadow:
+    0 5px 13px rgba(15, 23, 42, 0.12);
 }
 
 .secondary-action:hover:not(:disabled) {
   transform: translateY(-1px);
 
   opacity: 0.92;
+
+  box-shadow:
+    0 7px 17px rgba(15, 23, 42, 0.15);
+}
+
+.secondary-action:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .secondary-action:focus-visible,
@@ -1496,6 +1661,8 @@ textarea:focus {
   opacity: 0.45;
 
   cursor: not-allowed;
+
+  box-shadow: none;
 }
 
 .upload-message {
@@ -1515,6 +1682,8 @@ textarea:focus {
   font-size: 12px;
 
   line-height: 1.5;
+
+  animation: fadeIn 0.2s ease;
 }
 
 
@@ -1572,12 +1741,15 @@ textarea:focus {
     rgba(15, 23, 42, 0.035);
 
   transition:
-    background 0.18s ease;
+    background 0.18s ease,
+    transform 0.18s ease;
 }
 
 .document-item:hover {
   background:
     rgba(37, 99, 235, 0.055);
+
+  transform: translateX(1px);
 }
 
 .document-item > svg:first-child {
@@ -1697,7 +1869,8 @@ textarea:focus {
   transition:
     border-color 0.18s ease,
     background 0.18s ease,
-    transform 0.18s ease;
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .investigation-item:hover {
@@ -1706,6 +1879,9 @@ textarea:focus {
   background: #fbfcfe;
 
   transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 14px rgba(24, 39, 75, 0.04);
 }
 
 .investigation-info {
@@ -1794,6 +1970,18 @@ footer {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -2105,5 +2293,28 @@ footer {
 
   .evidence-line-content p {
     font-size: 11px;
+  }
+
+  .confidence {
+    white-space: normal;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
