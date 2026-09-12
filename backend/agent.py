@@ -24,91 +24,80 @@ MODEL = "gemini-3.7-flash"
 
 
 def ask_gemini(prompt):
-    """Send a single reasoning request to Gemini."""
+    models = [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+    ]
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-    )
+    last_error = None
 
-    return response.text
+    for model_name in models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+
+            if response.text:
+                return response.text
+
+        except Exception as exc:
+            last_error = exc
+
+            print(
+                f"Gemini model {model_name} failed. "
+                f"Trying fallback..."
+            )
+
+    raise last_error
 
 
 def create_plan(user_request):
     """
-    Ask Gemini to create a structured investigation plan.
+    Create a deterministic investigation plan.
 
-    The plan is deliberately restricted to our available tools.
+    CivicLens uses a local orchestrator for planning so that
+    Gemini is reserved for the higher-value reasoning/report step.
     """
 
-    prompt = f"""
-You are the planning component of CivicLens, an autonomous
-municipal policy-impact investigation agent.
-
-User request:
-{user_request}
-
-Create a short investigation plan.
-
-Available tools:
-1. search_policy_documents
-2. find_affected_locations
-3. analyze_impact
-4. verify_claim
-
-Return ONLY valid JSON in this exact structure:
-
-{{
-  "objective": "one sentence",
-  "steps": [
-    {{
-      "tool": "tool name",
-      "query": "what the tool should investigate"
-    }}
-  ]
-}}
-
-Rules:
-- Use 3 to 5 steps.
-- Only use the four tools listed above.
-- The plan should investigate evidence, not invent facts.
-- Include verification near the end.
-"""
-
-    raw = ask_gemini(prompt)
-
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-
-        # Gemini occasionally wraps JSON in markdown.
-        cleaned = raw.replace("```json", "").replace("```", "").strip()
-
-        try:
-            return json.loads(cleaned)
-        except json.JSONDecodeError:
-
-            return {
-                "objective": user_request,
-                "steps": [
-                    {
-                        "tool": "search_policy_documents",
-                        "query": user_request
-                    },
-                    {
-                        "tool": "find_affected_locations",
-                        "query": user_request
-                    },
-                    {
-                        "tool": "analyze_impact",
-                        "query": user_request
-                    },
-                    {
-                        "tool": "verify_claim",
-                        "query": user_request
-                    }
-                ]
+    return {
+        "objective": (
+            "Investigate the municipal policy issue using retrieved "
+            "evidence, affected-location analysis, stakeholder impact "
+            "analysis, and claim verification."
+        ),
+        "steps": [
+            {
+                "tool": "search_policy_documents",
+                "query": (
+                    f"Find municipal policy rules, regulations, clauses, "
+                    f"and documents relevant to: {user_request}"
+                )
+            },
+            {
+                "tool": "find_affected_locations",
+                "query": (
+                    f"Identify locations, zones, roads, corridors, or "
+                    f"geographic areas potentially affected by: {user_request}"
+                )
+            },
+            {
+                "tool": "analyze_impact",
+                "query": (
+                    f"Analyze potential traffic, parking, pedestrian, "
+                    f"residential, commercial, and public-transport impacts "
+                    f"of: {user_request}"
+                )
+            },
+            {
+                "tool": "verify_claim",
+                "query": (
+                    f"Verify the important claims and factual assertions "
+                    f"related to: {user_request}"
+                )
             }
+        ]
+    }
 
 
 def execute_tool(tool_name, query):
