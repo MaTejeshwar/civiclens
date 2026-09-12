@@ -150,6 +150,7 @@ def run_agent(user_request):
     Returns:
         plan
         tool results
+        evidence graph
         final evidence-backed report
     """
 
@@ -268,46 +269,268 @@ List facts that CivicLens could not conclusively verify.
 
     final_report = ask_gemini(report_prompt)
 
+    # ---------------------------------------------------------
+    # 5. BUILD EVIDENCE GRAPH LOCALLY
+    # ---------------------------------------------------------
+    # This uses existing tool results.
+    # No additional Gemini/API call is required.
+
+    graph_nodes = []
+    graph_edges = []
+
+    # Policy node
+    graph_nodes.append({
+        "id": "policy",
+        "type": "policy",
+        "label": "Policy Change",
+        "description": user_request
+    })
+
+    # ---------------------------------------------------------
+    # Rules / document evidence
+    # ---------------------------------------------------------
+
+    policy_results = []
+
+    for item in tool_results:
+        if item["tool"] == "search_policy_documents":
+            policy_results = item["result"].get("results", [])
+            break
+
+    rule_nodes = []
+
+    for index, result in enumerate(policy_results[:3]):
+        node_id = f"rule_{index}"
+
+        graph_nodes.append({
+            "id": node_id,
+            "type": "rule",
+            "label": result.get("document", "Municipal Document"),
+            "description": (
+                f"Page {result.get('page', 'N/A')}: "
+                f"{result.get('text', '')[:220]}"
+            ),
+            "document": result.get("document"),
+            "page": result.get("page"),
+            "score": result.get("score")
+        })
+
+        rule_nodes.append(node_id)
+
+        graph_edges.append({
+            "source": "policy",
+            "target": node_id,
+            "label": "supported by"
+        })
+
+    # ---------------------------------------------------------
+    # Affected locations
+    # ---------------------------------------------------------
+
+    location_evidence = []
+
+    for item in tool_results:
+        if item["tool"] == "find_affected_locations":
+            location_evidence = item["result"].get(
+                "location_evidence",
+                []
+            )
+            break
+
+    location_nodes = []
+
+    for index, location in enumerate(location_evidence[:3]):
+        node_id = f"location_{index}"
+
+        graph_nodes.append({
+            "id": node_id,
+            "type": "location",
+            "label": f"Affected Area {index + 1}",
+            "description": location.get(
+                "evidence",
+                ""
+            )[:250],
+            "document": location.get("document"),
+            "page": location.get("page")
+        })
+
+        location_nodes.append(node_id)
+
+        if rule_nodes:
+            graph_edges.append({
+                "source": rule_nodes[0],
+                "target": node_id,
+                "label": "applies to"
+            })
+        else:
+            graph_edges.append({
+                "source": "policy",
+                "target": node_id,
+                "label": "affects"
+            })
+
+    # ---------------------------------------------------------
+    # Stakeholders
+    # ---------------------------------------------------------
+
+    stakeholders = []
+
+    for item in tool_results:
+        if item["tool"] == "analyze_impact":
+            stakeholders = item["result"].get(
+                "stakeholders",
+                []
+            )
+            break
+
+    stakeholder_nodes = []
+
+    for index, stakeholder in enumerate(stakeholders):
+        node_id = f"stakeholder_{index}"
+
+        graph_nodes.append({
+            "id": node_id,
+            "type": "stakeholder",
+            "label": stakeholder.title(),
+            "description": "Potentially affected stakeholder"
+        })
+
+        stakeholder_nodes.append(node_id)
+
+        if location_nodes:
+            graph_edges.append({
+                "source": location_nodes[0],
+                "target": node_id,
+                "label": "affects"
+            })
+        else:
+            graph_edges.append({
+                "source": "policy",
+                "target": node_id,
+                "label": "affects"
+            })
+
+    # ---------------------------------------------------------
+    # Impact analysis
+    # ---------------------------------------------------------
+
+    impact_results = []
+
+    for item in tool_results:
+        if item["tool"] == "analyze_impact":
+            impact_results = item["result"].get(
+                "evidence",
+                []
+            )
+            break
+
+    if impact_results:
+        impact_node_id = "impact"
+
+        graph_nodes.append({
+            "id": impact_node_id,
+            "type": "impact",
+            "label": "Potential Impact",
+            "description": (
+                "Impact analysis supported by "
+                f"{len(impact_results)} retrieved evidence items."
+            )
+        })
+
+        for stakeholder_id in stakeholder_nodes[:3]:
+            graph_edges.append({
+                "source": stakeholder_id,
+                "target": impact_node_id,
+                "label": "may experience"
+            })
+
+    # ---------------------------------------------------------
+    # Evidence node
+    # ---------------------------------------------------------
+
+    evidence_items = []
+
+    for item in tool_results:
+        result = item.get("result", {})
+
+        if item["tool"] == "search_policy_documents":
+            evidence_items.extend(
+                result.get("results", [])
+            )
+
+        elif item["tool"] == "analyze_impact":
+            evidence_items.extend(
+                result.get("evidence", [])
+            )
+
+        elif item["tool"] == "verify_claim":
+            evidence_items.extend(
+                result.get("evidence", [])
+            )
+
+    # Remove duplicate document/page combinations
+    unique_evidence = []
+    seen = set()
+
+    for evidence in evidence_items:
+        key = (
+            evidence.get("document"),
+            evidence.get("page")
+        )
+
+        if key not in seen:
+            seen.add(key)
+            unique_evidence.append(evidence)
+
+    evidence_node_ids = []
+
+    for index, evidence in enumerate(unique_evidence[:5]):
+        node_id = f"evidence_{index}"
+
+        graph_nodes.append({
+            "id": node_id,
+            "type": "evidence",
+            "label": evidence.get(
+                "document",
+                "Source Document"
+            ),
+            "description": (
+                f"Page {evidence.get('page', 'N/A')}: "
+                f"{evidence.get('text', '')[:220]}"
+            ),
+            "document": evidence.get("document"),
+            "page": evidence.get("page"),
+            "score": evidence.get("score")
+        })
+
+        evidence_node_ids.append(node_id)
+
+        if "impact" in [node["id"] for node in graph_nodes]:
+            graph_edges.append({
+                "source": "impact",
+                "target": node_id,
+                "label": "supported by"
+            })
+        else:
+            graph_edges.append({
+                "source": "policy",
+                "target": node_id,
+                "label": "evidence"
+            })
+
+    evidence_graph = {
+        "nodes": graph_nodes,
+        "edges": graph_edges
+    }
+
+    # ---------------------------------------------------------
+    # 6. RETURN COMPLETE INVESTIGATION
+    # ---------------------------------------------------------
+
     return {
         "request": user_request,
         "plan": plan,
         "tool_results": tool_results,
+        "evidence_graph": evidence_graph,
         "report": final_report
     }
-
-
-if __name__ == "__main__":
-
-    request = """
-Analyze the proposed mixed-use corridor policy change.
-Determine what planning rules are relevant, which locations
-may be affected, which stakeholders may be impacted, and
-what evidence should be verified before implementation.
-"""
-
-    result = run_agent(request)
-
-    print("\n")
-    print("=" * 80)
-    print("CIVICLENS AGENT PLAN")
-    print("=" * 80)
-    print(json.dumps(
-        result["plan"],
-        indent=2,
-        ensure_ascii=False
-    ))
-
-    print("\n")
-    print("=" * 80)
-    print("TOOLS EXECUTED")
-    print("=" * 80)
-
-    for item in result["tool_results"]:
-        print(f"\nTOOL: {item['tool']}")
-        print(f"QUERY: {item['query']}")
-
-    print("\n")
-    print("=" * 80)
-    print("CIVICLENS REPORT")
-    print("=" * 80)
-    print(result["report"])

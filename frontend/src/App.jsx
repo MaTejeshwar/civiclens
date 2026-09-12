@@ -11,6 +11,11 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
+  GitBranch,
+  Scale,
+  Activity,
+  Database,
+  Lightbulb,
 } from "lucide-react";
 
 import "./App.css";
@@ -45,15 +50,30 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        let message = `API request failed with status ${response.status}.`;
+
+        try {
+          const errorData = await response.json();
+
+          if (errorData?.detail) {
+            message = errorData.detail;
+          }
+        } catch {
+          // Keep the default error message.
+        }
+
+        throw new Error(message);
       }
 
       const data = await response.json();
 
       setResult(data);
     } catch (err) {
+      console.error(err);
+
       setError(
-        "Unable to connect to CivicLens backend. Make sure the FastAPI server is running on port 8000."
+        err?.message ||
+          "Unable to connect to CivicLens backend. Make sure the FastAPI server is running on port 8000."
       );
     } finally {
       setLoading(false);
@@ -105,7 +125,10 @@ function App() {
           <div className="card-heading">
             <div>
               <h2>Start an investigation</h2>
-              <p>Describe the municipal policy question you want CivicLens to investigate.</p>
+              <p>
+                Describe the municipal policy question you want CivicLens to
+                investigate.
+              </p>
             </div>
 
             <div className="document-count">
@@ -167,11 +190,40 @@ function App() {
             </div>
 
             <div className="trace-grid">
-              <TraceItem icon={<BrainCircuit size={19} />} title="Plan" text="Creating investigation strategy" active />
-              <TraceItem icon={<Search size={19} />} title="Retrieve" text="Searching municipal evidence" active />
-              <TraceItem icon={<MapPin size={19} />} title="Locate" text="Mapping affected areas" active />
-              <TraceItem icon={<Users size={19} />} title="Impact" text="Analyzing stakeholders" active />
-              <TraceItem icon={<ShieldCheck size={19} />} title="Verify" text="Checking evidence" active />
+              <TraceItem
+                icon={<BrainCircuit size={19} />}
+                title="Plan"
+                text="Creating investigation strategy"
+                active
+              />
+
+              <TraceItem
+                icon={<Search size={19} />}
+                title="Retrieve"
+                text="Searching municipal evidence"
+                active
+              />
+
+              <TraceItem
+                icon={<MapPin size={19} />}
+                title="Locate"
+                text="Mapping affected areas"
+                active
+              />
+
+              <TraceItem
+                icon={<Users size={19} />}
+                title="Impact"
+                text="Analyzing stakeholders"
+                active
+              />
+
+              <TraceItem
+                icon={<ShieldCheck size={19} />}
+                title="Verify"
+                text="Checking evidence"
+                active
+              />
             </div>
           </section>
         )}
@@ -195,13 +247,44 @@ function App() {
               </div>
 
               <div className="trace-grid">
-                <TraceItem icon={<BrainCircuit size={19} />} title="Plan" text="Investigation strategy created" done />
-                <TraceItem icon={<Search size={19} />} title="Retrieve" text="Municipal evidence retrieved" done />
-                <TraceItem icon={<MapPin size={19} />} title="Locate" text="Affected areas investigated" done />
-                <TraceItem icon={<Users size={19} />} title="Impact" text="Stakeholder impacts analyzed" done />
-                <TraceItem icon={<ShieldCheck size={19} />} title="Verify" text="Claims checked against evidence" done />
+                <TraceItem
+                  icon={<BrainCircuit size={19} />}
+                  title="Plan"
+                  text="Investigation strategy created"
+                  done
+                />
+
+                <TraceItem
+                  icon={<Search size={19} />}
+                  title="Retrieve"
+                  text="Municipal evidence retrieved"
+                  done
+                />
+
+                <TraceItem
+                  icon={<MapPin size={19} />}
+                  title="Locate"
+                  text="Affected areas investigated"
+                  done
+                />
+
+                <TraceItem
+                  icon={<Users size={19} />}
+                  title="Impact"
+                  text="Stakeholder impacts analyzed"
+                  done
+                />
+
+                <TraceItem
+                  icon={<ShieldCheck size={19} />}
+                  title="Verify"
+                  text="Claims checked against evidence"
+                  done
+                />
               </div>
             </section>
+
+            <EvidenceGraph graph={result.evidence_graph} />
 
             <Report report={result.report} />
           </>
@@ -209,7 +292,8 @@ function App() {
       </main>
 
       <footer>
-        CivicLens • Evidence-backed municipal policy intelligence • Hackathon Prototype
+        CivicLens • Evidence-backed municipal policy intelligence • Hackathon
+        Prototype
       </footer>
     </div>
   );
@@ -217,7 +301,11 @@ function App() {
 
 function TraceItem({ icon, title, text, active, done }) {
   return (
-    <div className={`trace-item ${active ? "active" : ""} ${done ? "done" : ""}`}>
+    <div
+      className={`trace-item ${active ? "active" : ""} ${
+        done ? "done" : ""
+      }`}
+    >
       <div className="trace-icon">{icon}</div>
 
       <div>
@@ -229,6 +317,210 @@ function TraceItem({ icon, title, text, active, done }) {
     </div>
   );
 }
+
+/* =========================================================
+   EVIDENCE GRAPH
+   ========================================================= */
+
+function EvidenceGraph({ graph }) {
+  if (!graph?.nodes?.length) {
+    return null;
+  }
+
+  const getNodes = (type) =>
+    graph.nodes.filter((node) => node.type === type);
+
+  const policyNodes = getNodes("policy");
+  const ruleNodes = getNodes("rule");
+  const locationNodes = getNodes("location");
+  const stakeholderNodes = getNodes("stakeholder");
+  const impactNodes = getNodes("impact");
+  const evidenceNodes = getNodes("evidence");
+
+  return (
+    <section className="graph-section">
+      <div className="graph-heading">
+        <div>
+          <span className="eyebrow">
+            <GitBranch size={15} />
+            EVIDENCE INVESTIGATION GRAPH
+          </span>
+
+          <h2>How CivicLens reached its findings</h2>
+
+          <p>
+            Every investigation follows an evidence chain from the policy
+            change through applicable rules, affected places, stakeholders,
+            potential impacts, and supporting sources.
+          </p>
+        </div>
+
+        <div className="graph-stat">
+          <GitBranch size={17} />
+          <span>
+            {graph.nodes.length} nodes • {graph.edges?.length || 0} links
+          </span>
+        </div>
+      </div>
+
+      <div className="graph-flow">
+        <GraphStage
+          icon={<Scale size={20} />}
+          label="POLICY"
+          title="Policy Change"
+          nodes={policyNodes}
+          type="policy"
+        />
+
+        <GraphConnector />
+
+        <GraphStage
+          icon={<FileText size={20} />}
+          label="RULES"
+          title="Relevant Rules"
+          nodes={ruleNodes}
+          type="rule"
+        />
+
+        <GraphConnector />
+
+        <GraphStage
+          icon={<MapPin size={20} />}
+          label="LOCATION"
+          title="Affected Areas"
+          nodes={locationNodes}
+          type="location"
+        />
+
+        <GraphConnector />
+
+        <GraphStage
+          icon={<Users size={20} />}
+          label="PEOPLE"
+          title="Stakeholders"
+          nodes={stakeholderNodes}
+          type="stakeholder"
+        />
+
+        <GraphConnector />
+
+        <GraphStage
+          icon={<Activity size={20} />}
+          label="IMPACT"
+          title="Potential Impact"
+          nodes={impactNodes}
+          type="impact"
+        />
+
+        <GraphConnector />
+
+        <GraphStage
+          icon={<Database size={20} />}
+          label="EVIDENCE"
+          title="Supporting Sources"
+          nodes={evidenceNodes}
+          type="evidence"
+        />
+      </div>
+
+      <div className="graph-explanation">
+        <div>
+          <CheckCircle2 size={17} />
+          <span>Evidence-backed relationship</span>
+        </div>
+
+        <div>
+          <ShieldCheck size={17} />
+          <span>Human verification remains required</span>
+        </div>
+
+        <div>
+          <Lightbulb size={17} />
+          <span>AI produces decision support, not legal decisions</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function GraphStage({ icon, label, title, nodes, type }) {
+  return (
+    <div className={`graph-stage graph-stage-${type}`}>
+      <div className="graph-stage-header">
+        <div className="graph-stage-icon">{icon}</div>
+
+        <div>
+          <span>{label}</span>
+          <strong>{title}</strong>
+        </div>
+      </div>
+
+      <div className="graph-nodes">
+        {nodes.length === 0 ? (
+          <div className="graph-empty">No linked evidence</div>
+        ) : (
+          nodes.map((node) => (
+            <GraphNode key={node.id} node={node} type={type} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GraphNode({ node, type }) {
+  const description = node.description || "";
+
+  return (
+    <div className={`graph-node graph-node-${type}`}>
+      <div className="graph-node-top">
+        <span className="graph-node-label">
+          {type === "rule" && "RULE"}
+          {type === "location" && "AREA"}
+          {type === "stakeholder" && "STAKEHOLDER"}
+          {type === "impact" && "IMPACT"}
+          {type === "evidence" && "SOURCE"}
+          {type === "policy" && "CHANGE"}
+        </span>
+
+        <CheckCircle2 size={14} />
+      </div>
+
+      <strong>{node.label || "Untitled finding"}</strong>
+
+      {description && (
+        <p>
+          {description.length > 180
+            ? `${description.slice(0, 180)}...`
+            : description}
+        </p>
+      )}
+
+      {(node.document || node.page) && (
+        <div className="graph-source">
+          <FileText size={12} />
+
+          <span>
+            {node.document || "Source"}
+            {node.page ? ` • Page ${node.page}` : ""}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GraphConnector() {
+  return (
+    <div className="graph-connector">
+      <ArrowRight size={18} />
+    </div>
+  );
+}
+
+/* =========================================================
+   REPORT
+   ========================================================= */
 
 function Report({ report }) {
   const sections = parseReport(report);
@@ -282,6 +574,13 @@ function Report({ report }) {
           title="Potential Impacts"
           content={sections["Potential Impacts"]}
         />
+
+        <ReportCard
+          wide
+          icon={<ShieldCheck size={20} />}
+          title="Confidence"
+          content={sections["Confidence"]}
+        />
       </div>
 
       <div className="evidence-panel">
@@ -291,6 +590,7 @@ function Report({ report }) {
               <ShieldCheck size={15} />
               TRACEABLE EVIDENCE
             </span>
+
             <h3>Sources used by the agent</h3>
           </div>
         </div>
@@ -329,13 +629,19 @@ function ReportCard({ icon, title, content, wide }) {
   return (
     <div className={`report-card ${wide ? "wide" : ""}`}>
       <div className="report-card-icon">{icon}</div>
+
       <h3>{title}</h3>
+
       <div className="report-card-content">
         {formatContent(content)}
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   REPORT PARSING / FORMATTING
+   ========================================================= */
 
 function parseReport(report) {
   if (!report) return {};
@@ -351,10 +657,6 @@ function parseReport(report) {
 
     let title = lines[0].trim();
 
-    // Remove numbering such as:
-    // "1. Executive Summary"
-    // "2. What Changed"
-    // "3. Affected Locations"
     title = title.replace(/^\d+\.\s*/, "");
 
     if (title && title !== "CivicLens Policy Impact Report") {
@@ -376,22 +678,19 @@ function formatContent(content = "") {
     .filter(Boolean);
 
   return lines.map((line, index) => {
-    // Remove numbered prefixes such as "1. " or "2. "
     const clean = line.replace(/^\d+\.\s*/, "");
 
-    // Remove Markdown bold markers
-    const formatted = clean.replace(/\*\*/g, "");
-
-    if (/^\d+\.\s/.test(clean)) {
-      return (
-        <div className="numbered-item" key={index}>
-          {formatted}
-        </div>
-      );
-    }
+    const formatted = clean
+      .replace(/\*\*/g, "")
+      .replace(/^[-*]\s*/, "");
 
     return (
-      <div key={index}>
+      <div
+        className={
+          /^\d+\.\s/.test(clean) ? "numbered-item" : undefined
+        }
+        key={index}
+      >
         {formatted}
       </div>
     );
@@ -409,7 +708,9 @@ function formatEvidence(content = "") {
     .filter(Boolean);
 
   return lines.map((line, index) => {
-    const clean = line.replace(/^[-*]\s*/, "");
+    const clean = line
+      .replace(/^[-*]\s*/, "")
+      .replace(/\*\*/g, "");
 
     return (
       <div className="evidence-line" key={index}>

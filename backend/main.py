@@ -44,14 +44,15 @@ def health():
 @app.post("/api/analyze")
 def analyze(request: AnalysisRequest):
 
-    result = run_agent(
-        request.question
-    )
+    result = run_agent(request.question)
 
     return {
         "success": True,
+
         "request": request.question,
+
         "plan": result["plan"],
+
         "tools": [
             {
                 "tool": item["tool"],
@@ -59,5 +60,17 @@ def analyze(request: AnalysisRequest):
             }
             for item in result["tool_results"]
         ],
+
+        # NEW:
+        # Send the locally-generated evidence graph
+        # to the React frontend.
+        "evidence_graph": result.get(
+            "evidence_graph",
+            {
+                "nodes": [],
+                "edges": []
+            }
+        ),
+
         "report": result["report"]
     }
