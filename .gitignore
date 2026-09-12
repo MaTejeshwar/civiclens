@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+# Generated and local data
+outputs/*
+data/processed/*
+
+# Keep directory placeholders
+!data/processed/.gitkeep
+!outputs/.gitkeep
+data/processed/.gitkeep
+outputs/.gitkeep
