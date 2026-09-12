@@ -8,9 +8,3 @@ venv/
 # Generated and local data
 outputs/*
 data/processed/*
-
-# Keep directory placeholders
-!data/processed/.gitkeep
-!outputs/.gitkeep
-data/processed/.gitkeep
-outputs/.gitkeep
